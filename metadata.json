@@ -1,0 +1,6 @@
+{
+  "name": "PumpX",
+  "description": "Transforme tes limites de temps d'écran en petites sessions de pompes. Screen Time x Push-ups x Computer Vision.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
