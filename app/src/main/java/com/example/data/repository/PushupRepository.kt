@@ -23,6 +23,10 @@ class PushupRepository(private val pushupSessionDao: PushupSessionDao) {
         return pushupSessionDao.getTotalPushupsSince(getTodayStartMs())
     }
 
+    fun getTotalPushupsAllTime(): Flow<Int?> {
+        return pushupSessionDao.getTotalPushupsAllTime()
+    }
+
     fun getTodayBonusMinutes(): Flow<Int?> {
         return pushupSessionDao.getTotalBonusMinutesSince(getTodayStartMs())
     }

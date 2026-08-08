@@ -17,7 +17,8 @@ import kotlinx.coroutines.launch
 
 data class MonitoredAppWithUsage(
     val entity: MonitoredAppEntity,
-    val usageMinutesToday: Int
+    val usageMinutesToday: Int,
+    val iconDrawable: android.graphics.drawable.Drawable? = null
 )
 
 data class AppsUiState(
@@ -59,7 +60,8 @@ class MonitoredAppsViewModel(application: Application) : AndroidViewModel(applic
             val usage = if (hasPermission) {
                 screenTimeRepository.getTodayUsageMinutes(entity.packageName)
             } else 0
-            MonitoredAppWithUsage(entity, usage)
+            val icon = installedList.find { it.packageName == entity.packageName }?.iconDrawable
+            MonitoredAppWithUsage(entity, usage, icon)
         }
 
         val filteredInstalled = if (query.isBlank()) {

@@ -19,11 +19,12 @@ data class HomeUiState(
     val totalScreenTimeTodayMinutes: Int = 0,
     val monitoredApps: List<MonitoredAppEntity> = emptyList(),
     val hasUsagePermission: Boolean = false,
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val totalPushupsAllTime: Int = 0,
+    val level: Int = 1
 )
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
-
     private val app = application as PumpXApplication
     private val pushupRepository = app.pushupRepository
     private val monitoredAppRepository = app.monitoredAppRepository
@@ -37,18 +38,29 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         pushupRepository.getTodayPushups(),
         pushupRepository.getTodayBonusMinutes(),
         monitoredAppRepository.allMonitoredApps,
+        pushupRepository.getTotalPushupsAllTime(),
         _refreshTrigger
-    ) { nickname, pushups, bonus, apps, _ ->
+    ) { params ->
+        val nickname = params[0] as String
+        val pushups = params[1] as Int? ?: 0
+        val bonus = params[2] as Int? ?: 0
+        val apps = params[3] as List<MonitoredAppEntity>
+        val allTimePushups = params[4] as Int? ?: 0
+
         val hasPermission = screenTimeRepository.isPermissionGranted()
         val totalScreenTime = if (hasPermission) screenTimeRepository.getTotalScreenTimeTodayMinutes() else 0
 
+        val level = (allTimePushups / 100) + 1
+
         HomeUiState(
             userNickname = nickname,
-            todayPushups = pushups ?: 0,
-            todayBonusMinutes = bonus ?: 0,
+            todayPushups = pushups,
+            todayBonusMinutes = bonus,
             totalScreenTimeTodayMinutes = totalScreenTime,
             monitoredApps = apps,
-            hasUsagePermission = hasPermission
+            hasUsagePermission = hasPermission,
+            totalPushupsAllTime = allTimePushups,
+            level = level
         )
     }.stateIn(
         scope = viewModelScope,

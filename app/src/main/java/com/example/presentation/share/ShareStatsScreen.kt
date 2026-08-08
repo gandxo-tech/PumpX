@@ -51,6 +51,17 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.presentation.stats.StatsViewModel
+import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import androidx.core.content.FileProvider
+import java.io.File
+import java.io.FileOutputStream
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 enum class ShareFormat {
     STORY_9_16, POST_4_5, SQUARE_1_1
@@ -81,23 +92,45 @@ fun ShareStatsScreen(
         ShareFormat.POST_4_5 -> 4f / 5f
         ShareFormat.SQUARE_1_1 -> 1f
     }
+    
+    val graphicsLayer = rememberGraphicsLayer()
+    val coroutineScope = rememberCoroutineScope()
 
     fun triggerSharesheet() {
-        val shareText = buildString {
-            append("🔥 Mes résultats PumpX cette semaine :\n")
-            if (showPushups) append("💪 ${uiState.totalPushups} pompes effectuées\n")
-            if (showBonusTime) append("⚡ +${uiState.totalBonusMinutes} min de temps bonus débloqué\n")
-            if (showApps) append("📱 ${uiState.activeDaysCount} jours d'entraînement actifs\n")
-            append("\nTransforme tes limites de temps d'écran avec PumpX !")
-        }
+        coroutineScope.launch {
+            val bitmap = graphicsLayer.toImageBitmap().asAndroidBitmap()
+            val uri = withContext(Dispatchers.IO) {
+                val imagePath = File(context.cacheDir, "images")
+                imagePath.mkdirs()
+                val file = File(imagePath, "shared_image.png")
+                val stream = FileOutputStream(file)
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream)
+                stream.close()
+                FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.fileprovider",
+                    file
+                )
+            }
 
-        val sendIntent = Intent().apply {
-            action = Intent.ACTION_SEND
-            putExtra(Intent.EXTRA_TEXT, shareText)
-            type = "text/plain"
+            val shareText = buildString {
+                append("🔥 J'ai repoussé mes limites avec PumpX cette semaine ! Voici mes résultats :\n\n")
+                if (showPushups) append("💪 ${uiState.totalPushups} pompes effectuées pour mériter mon temps d'écran.\n")
+                if (showBonusTime) append("⚡ +${uiState.totalBonusMinutes} minutes de divertissement débloquées à la sueur de mon front.\n")
+                if (showApps) append("📱 ${uiState.activeDaysCount} jours consécutifs d'entraînement, la discipline paie !\n")
+                append("\nRejoins l'aventure et transforme tes limites de temps d'écran en force physique avec PumpX ! 🚀")
+            }
+
+            val sendIntent = Intent().apply {
+                action = Intent.ACTION_SEND
+                putExtra(Intent.EXTRA_TEXT, shareText)
+                putExtra(Intent.EXTRA_STREAM, uri)
+                type = "image/png"
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            val shareIntent = Intent.createChooser(sendIntent, "Partager mes statistiques PumpX")
+            context.startActivity(shareIntent)
         }
-        val shareIntent = Intent.createChooser(sendIntent, "Partager mes statistiques PumpX")
-        context.startActivity(shareIntent)
     }
 
     Scaffold(
@@ -143,73 +176,116 @@ fun ShareStatsScreen(
                             .aspectRatio(aspectRatio)
                             .background(
                                 when (style) {
-                                    ShareStyle.MINIMAL -> Color(0xFF0F172A)
-                                    ShareStyle.PERFORMANCE -> Color(0xFF1E1B4B)
-                                    ShareStyle.FUN -> Color(0xFF2563EB)
+                                    ShareStyle.MINIMAL -> androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color(0xFF0F172A), Color(0xFF1E293B)))
+                                    ShareStyle.PERFORMANCE -> androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color(0xFF1E1B4B), Color(0xFF312E81)))
+                                    ShareStyle.FUN -> androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color(0xFF2563EB), Color(0xFF1D4ED8)))
                                 }
                             )
+                            .drawWithContent {
+                                graphicsLayer.record {
+                                    this@drawWithContent.drawContent()
+                                }
+                                drawLayer(graphicsLayer)
+                            }
                             .padding(24.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
+                            verticalArrangement = Arrangement.Center,
+                            modifier = Modifier
+                                .background(Color.Black.copy(alpha = 0.3f), RoundedCornerShape(24.dp))
+                                .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(24.dp))
+                                .padding(32.dp)
                         ) {
                             Text(
                                 text = "PUMPX",
                                 color = Color.White,
-                                fontSize = 28.sp,
+                                fontSize = 32.sp,
                                 fontWeight = FontWeight.Black,
-                                letterSpacing = 2.sp
+                                letterSpacing = 4.sp
                             )
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = "SCREEN TIME × MOVEMENT",
                                 color = Color.LightGray,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp
                             )
-
-                            Spacer(modifier = Modifier.height(24.dp))
+                            
+                            Spacer(modifier = Modifier.height(36.dp))
 
                             if (showPushups) {
                                 Text(
                                     text = "${uiState.totalPushups}",
-                                    fontSize = 48.sp,
+                                    fontSize = 56.sp,
                                     fontWeight = FontWeight.Black,
-                                    color = Color.White
+                                    color = Color.White,
+                                    lineHeight = 56.sp
                                 )
+                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = "POMPES CETTE SEMAINE",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF3B82F6)
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFF3B82F6),
+                                    letterSpacing = 1.5.sp
                                 )
-                                Spacer(modifier = Modifier.height(16.dp))
+                                Spacer(modifier = Modifier.height(24.dp))
                             }
 
                             if (showBonusTime) {
+                                Box(
+                                    modifier = Modifier
+                                        .background(Color(0xFF10B981).copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.LockOpen,
+                                            contentDescription = null,
+                                            tint = Color(0xFF10B981),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "+${uiState.totalBonusMinutes} MIN DÉBLOQUÉES",
+                                            fontWeight = FontWeight.Black,
+                                            color = Color(0xFF10B981),
+                                            fontSize = 14.sp
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(16.dp))
+                            }
+
+                            if (showApps) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
-                                        imageVector = Icons.Default.LockOpen,
+                                        imageVector = Icons.Default.FitnessCenter,
                                         contentDescription = null,
-                                        tint = Color(0xFF10B981)
+                                        tint = Color(0xFFF59E0B),
+                                        modifier = Modifier.size(18.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = "+${uiState.totalBonusMinutes} MIN DÉBLOQUÉES",
+                                        text = "${uiState.activeDaysCount} JOURS ACTIFS",
                                         fontWeight = FontWeight.Black,
-                                        color = Color(0xFF10B981)
+                                        color = Color(0xFFF59E0B),
+                                        fontSize = 14.sp
                                     )
                                 }
                             }
 
                             if (style == ShareStyle.FUN) {
-                                Spacer(modifier = Modifier.height(16.dp))
+                                Spacer(modifier = Modifier.height(32.dp))
                                 Text(
                                     text = "« ${uiState.dynamicHook} »",
-                                    fontSize = 13.sp,
-                                    color = Color.White,
-                                    textAlign = TextAlign.Center
+                                    fontSize = 14.sp,
+                                    color = Color.White.copy(alpha = 0.9f),
+                                    textAlign = TextAlign.Center,
+                                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
                                 )
                             }
                         }

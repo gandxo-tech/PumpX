@@ -65,18 +65,15 @@ fun LegalScreen(onBack: () -> Unit) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Text("1. ÉDITEUR DU SERVICE", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Nom de la société / Éditeur: [À RENSEIGNER PAR L'ÉDITEUR]")
-                    Text("Forme juridique: [À RENSEIGNER PAR L'ÉDITEUR]")
-                    Text("Siège social: [À RENSEIGNER PAR L'ÉDITEUR]")
-                    Text("Numéro SIREN / Immatriculation: [À RENSEIGNER PAR L'ÉDITEUR]")
-                    Text("Email de contact: [À RENSEIGNER PAR L'ÉDITEUR]")
+                    Text("Nom: GBAGUIDI Exaucé")
+                    Text("Structure: Gandxo_tech")
+                    Text("Email de contact: gbaguidiexauce@gmail.com")
 
                     Spacer(modifier = Modifier.height(20.dp))
 
                     Text("2. HÉBERGEMENT ET INFRASTRUCTURE", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("L'application PumpX fonctionne principalement en traitement local sur le terminal Android de l'utilisateur.")
-                    Text("Hébergeur des services en ligne: [À RENSEIGNER PAR L'ÉDITEUR]")
 
                     Spacer(modifier = Modifier.height(20.dp))
 

@@ -21,6 +21,9 @@ interface PushupSessionDao {
     @Query("SELECT SUM(unlockedBonusMinutes) FROM pushup_sessions WHERE timestamp >= :startTimeMs")
     fun getTotalBonusMinutesSince(startTimeMs: Long): Flow<Int?>
 
+    @Query("SELECT SUM(pushupsCount) FROM pushup_sessions")
+    fun getTotalPushupsAllTime(): Flow<Int?>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSession(session: PushupSessionEntity): Long
 }

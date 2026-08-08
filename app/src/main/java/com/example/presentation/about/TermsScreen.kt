@@ -95,7 +95,7 @@ fun TermsScreen(onBack: () -> Unit) {
 
                     Text("6. CONTACT", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text("Pour toute question: [À RENSEIGNER PAR L'ÉDITEUR]")
+                    Text("Pour toute question: gbaguidiexauce@gmail.com")
                 }
             }
         }

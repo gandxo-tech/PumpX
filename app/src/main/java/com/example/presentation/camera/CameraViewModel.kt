@@ -10,6 +10,7 @@ import com.example.vision.PushupStateMachine
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
 enum class CalibrationStatus {
@@ -104,6 +105,11 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
                     monitoredAppRepository.addBonusMinutes(pkg, state.bonusMinutesToUnlock)
                 }
             }
+            
+            // Get current level
+            val totalPushups = pushupRepository.getTotalPushupsAllTime().firstOrNull() ?: 0
+            val level = (totalPushups / 100) + 1
+            com.example.core.notifications.NotificationHelper(getApplication()).showPushupSessionCompletedNotification(state.feedback.count, level)
         }
     }
 

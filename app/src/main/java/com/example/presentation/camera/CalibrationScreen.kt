@@ -33,7 +33,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -195,6 +198,21 @@ fun CalibrationScreen(
         // Bottom Status Box
         val isReady = uiState.calibrationStatus == CalibrationStatus.READY
 
+        var countdown by remember { mutableStateOf<Int?>(null) }
+
+        LaunchedEffect(isReady) {
+            if (isReady) {
+                countdown = 5
+                while (countdown!! > 0) {
+                    delay(1000)
+                    countdown = countdown!! - 1
+                }
+                onCalibrationComplete()
+            } else {
+                countdown = null
+            }
+        }
+
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -249,8 +267,11 @@ fun CalibrationScreen(
                     ) {
                         Icon(imageVector = Icons.Default.PlayArrow, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
+                        val btnText = if (isReady && countdown != null) "DÉMARRAGE DANS ${countdown}s..." 
+                                      else if (isReady) "COMMENCER" 
+                                      else "POSITIONNE-TOI"
                         Text(
-                            text = if (isReady) "COMMENCER LES POMPES" else "POSITIONNE-TOI",
+                            text = btnText,
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp
                         )
