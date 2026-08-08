@@ -9,11 +9,13 @@ import androidx.compose.ui.graphics.Color
 import com.example.core.datastore.AppTheme
 
 private val DarkColorScheme = darkColorScheme(
-    primary = PumpXBluePrimary,
+    primary = PumpXFlamePrimary,
     onPrimary = Color.White,
     secondary = PumpXCyanSecondary,
     onSecondary = Color.Black,
     tertiary = PumpXGreenEnergy,
+    error = PumpXRedAlert,
+    onError = Color.White,
     background = DarkBackground,
     onBackground = DarkOnBackground,
     surface = DarkSurface,
@@ -23,11 +25,13 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = PumpXBluePrimary,
+    primary = PumpXFlamePrimary,
     onPrimary = Color.White,
     secondary = PumpXCyanSecondary,
     onSecondary = Color.White,
     tertiary = PumpXGreenEnergy,
+    error = PumpXRedAlert,
+    onError = Color.White,
     background = LightBackground,
     onBackground = LightOnBackground,
     surface = LightSurface,

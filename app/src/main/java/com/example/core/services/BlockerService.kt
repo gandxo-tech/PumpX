@@ -13,6 +13,8 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.example.MainActivity
 import com.example.PumpXApplication
+import com.example.data.local.getEffectiveUsageToday
+import com.example.data.local.getEffectiveLimitToday
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.firstOrNull
 
@@ -83,9 +85,13 @@ class BlockerService : Service() {
                     if (currentForegroundApp != null && currentForegroundApp != packageName) {
                         val monitoredApp = monitoredApps.find { it.packageName == currentForegroundApp }
                         if (monitoredApp != null && monitoredApp.isEnabled) {
-                            val todayUsage = app.screenTimeRepository.getTodayUsageMinutes(currentForegroundApp)
-                            val effectiveLimit = monitoredApp.dailyLimitMinutes + monitoredApp.bonusMinutesUnlockedToday
-                            if (todayUsage >= effectiveLimit) {
+                            val rawTodayUsage = app.screenTimeRepository.getTodayUsageMinutes(currentForegroundApp)
+                            if (monitoredApp.lastResetDateEpochDay == java.time.LocalDate.now().toEpochDay() && monitoredApp.initialUsageTodayMinutes == 0 && rawTodayUsage > 0) {
+                                app.monitoredAppRepository.checkAndAutoRepairBaseline(monitoredApp.packageName, rawTodayUsage)
+                            }
+                            val effectiveUsage = monitoredApp.getEffectiveUsageToday(rawTodayUsage)
+                            val effectiveLimit = monitoredApp.getEffectiveLimitToday()
+                            if (effectiveUsage >= effectiveLimit) {
                                 // Exceeded! Launch blocking screen
                                 if (currentForegroundApp != lastBlockedPackage || System.currentTimeMillis() - lastBlockedTime > 60000) {
                                     lastBlockedPackage = currentForegroundApp

@@ -202,9 +202,9 @@ fun MonitoredAppsScreen(
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(20.dp),
+                            border = if (isLimitReached) androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.6f)) else null,
                             colors = CardDefaults.cardColors(
-                                containerColor = if (isLimitReached) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
-                                else MaterialTheme.colorScheme.surface
+                                containerColor = MaterialTheme.colorScheme.surface
                             )
                         ) {
                             Column(modifier = Modifier.padding(20.dp)) {
@@ -290,7 +290,7 @@ fun MonitoredAppsScreen(
                                         text = "« Le bouton “encore 5 minutes” a été convoqué. 😂 »",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Medium,
-                                        color = MaterialTheme.colorScheme.onErrorContainer
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Spacer(modifier = Modifier.height(12.dp))
                                     Button(

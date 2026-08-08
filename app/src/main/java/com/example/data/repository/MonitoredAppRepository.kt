@@ -13,22 +13,37 @@ class MonitoredAppRepository(private val monitoredAppDao: MonitoredAppDao) {
         return monitoredAppDao.getAppByPackageName(packageName)
     }
 
-    suspend fun addOrUpdateApp(packageName: String, appName: String, dailyLimitMinutes: Int) {
+    suspend fun addOrUpdateApp(packageName: String, appName: String, dailyLimitMinutes: Int, currentTodayUsageMinutes: Int = 0) {
         val existing = monitoredAppDao.getAppByPackageName(packageName)
         val todayEpochDay = LocalDate.now().toEpochDay()
-        val bonus = if (existing != null && existing.lastResetDateEpochDay == todayEpochDay) {
-            existing.bonusMinutesUnlockedToday
-        } else 0
+        val isSameDay = existing != null && existing.lastResetDateEpochDay == todayEpochDay
+
+        val bonus = if (isSameDay) existing!!.bonusMinutesUnlockedToday else 0
+        val initialUsage = if (isSameDay && existing!!.initialUsageTodayMinutes > 0) {
+            existing.initialUsageTodayMinutes
+        } else {
+            currentTodayUsageMinutes
+        }
 
         val entity = MonitoredAppEntity(
             packageName = packageName,
             appName = appName,
             dailyLimitMinutes = dailyLimitMinutes,
             bonusMinutesUnlockedToday = bonus,
+            initialUsageTodayMinutes = initialUsage,
             lastResetDateEpochDay = todayEpochDay,
             isEnabled = true
         )
         monitoredAppDao.insertOrUpdateApp(entity)
+    }
+
+    suspend fun checkAndAutoRepairBaseline(packageName: String, currentUsageMinutes: Int) {
+        val existing = monitoredAppDao.getAppByPackageName(packageName) ?: return
+        val todayEpochDay = LocalDate.now().toEpochDay()
+        if (existing.lastResetDateEpochDay == todayEpochDay && existing.initialUsageTodayMinutes == 0 && currentUsageMinutes > 0) {
+            val repaired = existing.copy(initialUsageTodayMinutes = currentUsageMinutes)
+            monitoredAppDao.updateApp(repaired)
+        }
     }
 
     suspend fun addBonusMinutes(packageName: String, minutes: Int) {

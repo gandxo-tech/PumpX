@@ -33,6 +33,8 @@ import com.example.PumpXApplication
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+import androidx.compose.material3.MaterialTheme
+
 @Composable
 fun LimitReachedScreen(
     targetPackage: String,
@@ -73,7 +75,7 @@ fun LimitReachedScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0C0C0E))
+            .background(MaterialTheme.colorScheme.background)
             .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -85,8 +87,8 @@ fun LimitReachedScreen(
             Text(
                 text = "Limite Atteinte",
                 fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFFFFA299),
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.primary,
                 textAlign = TextAlign.Center
             )
 
@@ -95,10 +97,10 @@ fun LimitReachedScreen(
             Text(
                 text = "Tu as atteint ta limite quotidienne sur $appName.",
                 fontSize = 18.sp,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center,
                 lineHeight = 26.sp,
-                fontWeight = FontWeight.Normal
+                fontWeight = FontWeight.Medium
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -106,7 +108,7 @@ fun LimitReachedScreen(
             Text(
                 text = "Pour obtenir $bonusMinutes minutes supplémentaires, réalise $targetPushups pompes !",
                 fontSize = 17.sp,
-                color = Color(0xFFFF6542),
+                color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
                 lineHeight = 24.sp
@@ -118,7 +120,7 @@ fun LimitReachedScreen(
                 onClick = onStartPushups,
                 shape = RoundedCornerShape(28.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFFF5A36),
+                    containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = Color.White
                 ),
                 modifier = Modifier

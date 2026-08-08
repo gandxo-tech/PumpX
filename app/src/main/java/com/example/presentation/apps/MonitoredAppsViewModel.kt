@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+import com.example.data.local.getEffectiveUsageToday
+
 data class MonitoredAppWithUsage(
     val entity: MonitoredAppEntity,
     val usageMinutesToday: Int,
@@ -57,11 +59,17 @@ class MonitoredAppsViewModel(application: Application) : AndroidViewModel(applic
         val hasPermission = screenTimeRepository.isPermissionGranted()
 
         val appsWithUsage = apps.map { entity ->
-            val usage = if (hasPermission) {
-                screenTimeRepository.getTodayUsageMinutes(entity.packageName)
+            val effectiveUsage = if (hasPermission) {
+                val raw = screenTimeRepository.getTodayUsageMinutes(entity.packageName)
+                if (entity.lastResetDateEpochDay == java.time.LocalDate.now().toEpochDay() && entity.initialUsageTodayMinutes == 0 && raw > 0) {
+                    viewModelScope.launch(Dispatchers.IO) {
+                        monitoredAppRepository.checkAndAutoRepairBaseline(entity.packageName, raw)
+                    }
+                }
+                entity.getEffectiveUsageToday(raw)
             } else 0
             val icon = installedList.find { it.packageName == entity.packageName }?.iconDrawable
-            MonitoredAppWithUsage(entity, usage, icon)
+            MonitoredAppWithUsage(entity, effectiveUsage, icon)
         }
 
         val filteredInstalled = if (query.isBlank()) {
@@ -109,10 +117,12 @@ class MonitoredAppsViewModel(application: Application) : AndroidViewModel(applic
 
     fun addAppToMonitor(packageName: String, appName: String, dailyLimitMinutes: Int) {
         viewModelScope.launch {
+            val currentUsage = screenTimeRepository.getTodayUsageMinutes(packageName)
             monitoredAppRepository.addOrUpdateApp(
                 packageName = packageName,
                 appName = appName,
-                dailyLimitMinutes = dailyLimitMinutes
+                dailyLimitMinutes = dailyLimitMinutes,
+                currentTodayUsageMinutes = currentUsage
             )
             closeAddDialog()
         }
@@ -120,10 +130,12 @@ class MonitoredAppsViewModel(application: Application) : AndroidViewModel(applic
 
     fun updateAppLimit(packageName: String, appName: String, newLimitMinutes: Int) {
         viewModelScope.launch {
+            val currentUsage = screenTimeRepository.getTodayUsageMinutes(packageName)
             monitoredAppRepository.addOrUpdateApp(
                 packageName = packageName,
                 appName = appName,
-                dailyLimitMinutes = newLimitMinutes
+                dailyLimitMinutes = newLimitMinutes,
+                currentTodayUsageMinutes = currentUsage
             )
         }
     }

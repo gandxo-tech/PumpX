@@ -5,6 +5,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.PumpXApplication
 import com.example.data.local.MonitoredAppEntity
+import com.example.data.local.getEffectiveUsageToday
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -49,7 +52,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
         val hasPermission = screenTimeRepository.isPermissionGranted()
         val totalScreenTime = if (hasPermission) {
-            screenTimeRepository.getMonitoredScreenTimeTodayMinutes(apps.map { it.packageName })
+            apps.sumOf { appEntity ->
+                val rawUsage = screenTimeRepository.getTodayUsageMinutes(appEntity.packageName)
+                if (appEntity.lastResetDateEpochDay == java.time.LocalDate.now().toEpochDay() && appEntity.initialUsageTodayMinutes == 0 && rawUsage > 0) {
+                    viewModelScope.launch(Dispatchers.IO) {
+                        monitoredAppRepository.checkAndAutoRepairBaseline(appEntity.packageName, rawUsage)
+                    }
+                }
+                appEntity.getEffectiveUsageToday(rawUsage)
+            }
         } else 0
 
         val level = (allTimePushups / 100) + 1

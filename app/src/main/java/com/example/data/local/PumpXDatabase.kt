@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 
 @Database(
     entities = [MonitoredAppEntity::class, PushupSessionEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class PumpXDatabase : RoomDatabase() {
