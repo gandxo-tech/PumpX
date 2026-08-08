@@ -53,9 +53,12 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
+    private val currentIntentState = kotlinx.coroutines.flow.MutableStateFlow<android.content.Intent?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        currentIntentState.value = intent
         
         try {
             val serviceIntent = android.content.Intent(this, com.example.core.services.BlockerService::class.java)
@@ -76,6 +79,7 @@ class MainActivity : ComponentActivity() {
             
             // Use null as initial value to indicate loading state
             val onboardingState = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<Boolean?>(null) }
+            val activeIntent by currentIntentState.collectAsStateWithLifecycle()
             
             androidx.compose.runtime.LaunchedEffect(Unit) {
                 userPrefs.onboardingCompleted.collect { completed ->
@@ -85,11 +89,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            val blockedPackage = intent?.getStringExtra("blocked_package")
+            val blockedPackage = activeIntent?.getStringExtra("blocked_package")
 
             PumpXTheme(appTheme = appThemeState) {
                 if (onboardingState.value != null) {
-                    val initialRoute = if (blockedPackage != null) {
+                    val initialRoute = if (!blockedPackage.isNullOrEmpty()) {
                         Screen.LimitReached.createRoute(blockedPackage, 10, 15)
                     } else if (onboardingState.value == true) {
                         Screen.Home.route
@@ -99,6 +103,7 @@ class MainActivity : ComponentActivity() {
 
                     PumpXAppMain(
                         startDestination = initialRoute,
+                        currentIntentFlow = currentIntentState,
                         onCompleteOnboarding = {
                             val scope = (app as PumpXApplication)
                             // Handled inside scope
@@ -118,11 +123,18 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        currentIntentState.value = intent
+    }
 }
 
 @Composable
 fun PumpXAppMain(
     startDestination: String,
+    currentIntentFlow: kotlinx.coroutines.flow.StateFlow<android.content.Intent?>,
     onCompleteOnboarding: () -> Unit,
     onSetOnboardingComplete: () -> Unit,
     cameraViewModel: CameraViewModel = viewModel()
@@ -130,6 +142,16 @@ fun PumpXAppMain(
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    val activeIntent by currentIntentFlow.collectAsStateWithLifecycle()
+
+    LaunchedEffect(activeIntent) {
+        val blockedPackage = activeIntent?.getStringExtra("blocked_package")
+        if (!blockedPackage.isNullOrEmpty()) {
+            navController.navigate(Screen.LimitReached.createRoute(blockedPackage, 10, 15)) {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
 
     val bottomBarRoutes = listOf(
         Screen.Home.route,
