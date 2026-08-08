@@ -56,29 +56,65 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        try {
+            val serviceIntent = android.content.Intent(this, com.example.core.services.BlockerService::class.java)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent)
+            } else {
+                startService(serviceIntent)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
 
         val app = application as PumpXApplication
         val userPrefs = app.userPreferencesRepository
 
         setContent {
             val appThemeState by userPrefs.appTheme.collectAsStateWithLifecycle(initialValue = AppTheme.SYSTEM)
-            val hasCompletedOnboarding by userPrefs.onboardingCompleted.collectAsStateWithLifecycle(initialValue = false)
+            
+            // Use null as initial value to indicate loading state
+            val onboardingState = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<Boolean?>(null) }
+            
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                userPrefs.onboardingCompleted.collect { completed ->
+                    if (onboardingState.value == null) {
+                        onboardingState.value = completed
+                    }
+                }
+            }
+
+            val blockedPackage = intent?.getStringExtra("blocked_package")
 
             PumpXTheme(appTheme = appThemeState) {
-                PumpXAppMain(
-                    startDestination = if (hasCompletedOnboarding) Screen.Home.route else Screen.Onboarding.route,
-                    onCompleteOnboarding = {
-                        val scope = (app as PumpXApplication)
-                        // Handled inside scope
-                    },
-                    onSetOnboardingComplete = {
-                        // Persist onboarding done
-                        val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
-                        scope.launch {
-                            userPrefs.setOnboardingCompleted(true)
-                        }
+                if (onboardingState.value != null) {
+                    val initialRoute = if (blockedPackage != null) {
+                        Screen.LimitReached.createRoute(blockedPackage, 10, 15)
+                    } else if (onboardingState.value == true) {
+                        Screen.Home.route
+                    } else {
+                        Screen.Onboarding.route
                     }
-                )
+
+                    PumpXAppMain(
+                        startDestination = initialRoute,
+                        onCompleteOnboarding = {
+                            val scope = (app as PumpXApplication)
+                            // Handled inside scope
+                        },
+                        onSetOnboardingComplete = {
+                            // Persist onboarding done
+                            val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
+                            scope.launch {
+                                userPrefs.setOnboardingCompleted(true)
+                            }
+                        }
+                    )
+                } else {
+                    // Show a simple loading screen or keep it blank while determining start destination
+                    androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxSize())
+                }
             }
         }
     }
@@ -223,7 +259,31 @@ fun PumpXAppMain(
             composable(Screen.Apps.route) {
                 MonitoredAppsScreen(
                     onStartPushupForApp = { pkg, pushups, bonus ->
-                        navController.navigate(Screen.CameraSession.createRoute(pkg, pushups, bonus))
+                        navController.navigate(Screen.LimitReached.createRoute(pkg, pushups, bonus))
+                    }
+                )
+            }
+
+            composable(
+                route = Screen.LimitReached.route,
+                arguments = listOf(
+                    navArgument("targetPackage") { type = NavType.StringType; defaultValue = "general" },
+                    navArgument("targetPushups") { type = NavType.IntType; defaultValue = 10 },
+                    navArgument("bonusMinutes") { type = NavType.IntType; defaultValue = 15 }
+                )
+            ) { backStackEntry ->
+                val targetPackage = backStackEntry.arguments?.getString("targetPackage") ?: "general"
+                val targetPushups = backStackEntry.arguments?.getInt("targetPushups") ?: 10
+                val bonusMinutes = backStackEntry.arguments?.getInt("bonusMinutes") ?: 15
+
+                com.example.presentation.blocker.LimitReachedScreen(
+                    targetPackage = targetPackage,
+                    targetPushups = targetPushups,
+                    bonusMinutes = bonusMinutes,
+                    onStartPushups = {
+                        navController.navigate(Screen.CameraSession.createRoute(targetPackage, targetPushups, bonusMinutes)) {
+                            popUpTo(Screen.LimitReached.route) { inclusive = true }
+                        }
                     }
                 )
             }

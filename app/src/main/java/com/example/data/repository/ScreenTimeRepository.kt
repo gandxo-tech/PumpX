@@ -65,41 +65,47 @@ class ScreenTimeRepository(private val context: Context) {
             set(Calendar.MILLISECOND, 0)
         }
         val midnight = calendar.timeInMillis
-        val installTime = try {
-            context.packageManager.getPackageInfo(context.packageName, 0).firstInstallTime
-        } catch (e: Exception) {
-            0L
-        }
-        val startTime = maxOf(midnight, installTime)
         val endTime = System.currentTimeMillis()
 
-        val events = usageStatsManager.queryEvents(startTime, endTime)
+        val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, midnight, endTime)
+        
         var totalTimeMs = 0L
-        var lastEventTime = 0L
-        var isForeground = false
-
-        while (events.hasNextEvent()) {
-            val event = android.app.usage.UsageEvents.Event()
-            events.getNextEvent(event)
-
-            if (event.packageName == packageName) {
-                if (event.eventType == 1) { // ACTIVITY_RESUMED
-                    lastEventTime = event.timeStamp
-                    isForeground = true
-                } else if (event.eventType == 2 || event.eventType == 23) { // ACTIVITY_PAUSED or STOPPED
-                    if (isForeground) {
-                        totalTimeMs += (event.timeStamp - lastEventTime)
-                        isForeground = false
-                    } else {
-                        // Was in foreground before startTime
-                        totalTimeMs += (event.timeStamp - startTime)
-                    }
+        if (stats != null) {
+            for (usageStats in stats) {
+                if (usageStats.packageName == packageName) {
+                    totalTimeMs += usageStats.totalTimeInForeground
                 }
             }
         }
 
-        if (isForeground) {
-            totalTimeMs += (endTime - lastEventTime)
+        return (totalTimeMs / 1000 / 60).toInt()
+    }
+
+    fun getMonitoredScreenTimeTodayMinutes(packageNames: List<String>): Int {
+        if (!isPermissionGranted() || packageNames.isEmpty()) return 0
+
+        val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
+            ?: return 0
+
+        val calendar = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val midnight = calendar.timeInMillis
+        val endTime = System.currentTimeMillis()
+
+        val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, midnight, endTime)
+        
+        var totalTimeMs = 0L
+        if (stats != null) {
+            val monitoredSet = packageNames.toSet()
+            for (usageStats in stats) {
+                if (monitoredSet.contains(usageStats.packageName)) {
+                    totalTimeMs += usageStats.totalTimeInForeground
+                }
+            }
         }
 
         return (totalTimeMs / 1000 / 60).toInt()
@@ -118,39 +124,15 @@ class ScreenTimeRepository(private val context: Context) {
             set(Calendar.MILLISECOND, 0)
         }
         val midnight = calendar.timeInMillis
-        val installTime = try {
-            context.packageManager.getPackageInfo(context.packageName, 0).firstInstallTime
-        } catch (e: Exception) {
-            0L
-        }
-        val startTime = maxOf(midnight, installTime)
         val endTime = System.currentTimeMillis()
 
-        val events = usageStatsManager.queryEvents(startTime, endTime)
+        val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, midnight, endTime)
+        
         var totalTimeMs = 0L
-        val appStartTimes = mutableMapOf<String, Long>()
-
-        while (events.hasNextEvent()) {
-            val event = android.app.usage.UsageEvents.Event()
-            events.getNextEvent(event)
-
-            val pkg = event.packageName
-            if (event.eventType == 1) { // ACTIVITY_RESUMED
-                appStartTimes[pkg] = event.timeStamp
-            } else if (event.eventType == 2 || event.eventType == 23) { // ACTIVITY_PAUSED or STOPPED
-                val lastTime = appStartTimes[pkg]
-                if (lastTime != null) {
-                    totalTimeMs += (event.timeStamp - lastTime)
-                    appStartTimes.remove(pkg)
-                } else {
-                    // Was in foreground before startTime
-                    totalTimeMs += (event.timeStamp - startTime)
-                }
+        if (stats != null) {
+            for (usageStats in stats) {
+                totalTimeMs += usageStats.totalTimeInForeground
             }
-        }
-
-        for ((_, lastTime) in appStartTimes) {
-            totalTimeMs += (endTime - lastTime)
         }
 
         return (totalTimeMs / 1000 / 60).toInt()

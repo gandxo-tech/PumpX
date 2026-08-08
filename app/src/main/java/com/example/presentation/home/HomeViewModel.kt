@@ -48,7 +48,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val allTimePushups = params[4] as Int? ?: 0
 
         val hasPermission = screenTimeRepository.isPermissionGranted()
-        val totalScreenTime = if (hasPermission) screenTimeRepository.getTotalScreenTimeTodayMinutes() else 0
+        val totalScreenTime = if (hasPermission) {
+            screenTimeRepository.getMonitoredScreenTimeTodayMinutes(apps.map { it.packageName })
+        } else 0
 
         val level = (allTimePushups / 100) + 1
 

@@ -302,7 +302,7 @@ fun HomeScreen(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Temps d'écran aujourd'hui",
+                            text = "Sur les apps surveillées",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
