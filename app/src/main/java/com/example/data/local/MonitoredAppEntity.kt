@@ -16,7 +16,18 @@ data class MonitoredAppEntity(
 )
 
 fun MonitoredAppEntity.getEffectiveUsageToday(currentTodayUsageMinutes: Int): Int {
-    return currentTodayUsageMinutes
+    val todayEpochDay = LocalDate.now().toEpochDay()
+    val isSameDay = lastResetDateEpochDay == todayEpochDay
+    val baseline = if (isSameDay) {
+        if (initialUsageTodayMinutes == 0 && currentTodayUsageMinutes > 0) {
+            currentTodayUsageMinutes
+        } else {
+            initialUsageTodayMinutes
+        }
+    } else 0
+
+    val adjustedBaseline = if (currentTodayUsageMinutes >= baseline) baseline else 0
+    return maxOf(0, currentTodayUsageMinutes - adjustedBaseline)
 }
 
 fun MonitoredAppEntity.getEffectiveLimitToday(): Int {

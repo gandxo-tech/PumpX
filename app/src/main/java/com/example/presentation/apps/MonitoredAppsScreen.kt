@@ -343,7 +343,7 @@ fun MonitoredAppsScreen(
                                     ) {
                                         Icon(imageVector = Icons.Default.FitnessCenter, contentDescription = null)
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text("10 POMPES → +15 MIN")
+                                        Text("10 POMPES = +15 MIN")
                                     }
                                 }
                             }

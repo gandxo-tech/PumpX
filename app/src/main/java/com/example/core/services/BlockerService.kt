@@ -180,11 +180,14 @@ class BlockerService : Service() {
                         val monitoredApp = monitoredApps.find { it.packageName == currentApp }
                         if (monitoredApp != null && monitoredApp.isEnabled) {
                             val rawTodayUsage = app.screenTimeRepository.getTodayUsageMinutes(currentApp)
+                            if (monitoredApp.lastResetDateEpochDay == java.time.LocalDate.now().toEpochDay() && monitoredApp.initialUsageTodayMinutes == 0 && rawTodayUsage > 0) {
+                                app.monitoredAppRepository.checkAndAutoRepairBaseline(monitoredApp.packageName, rawTodayUsage)
+                            }
                             val sessionMinutes = if (activeForegroundApp == currentApp && foregroundStartTime > 0) {
                                 ((System.currentTimeMillis() - foregroundStartTime) / 1000 / 60).toInt()
                             } else 0
 
-                            val effectiveUsage = maxOf(rawTodayUsage, monitoredApp.getEffectiveUsageToday(rawTodayUsage) + sessionMinutes)
+                            val effectiveUsage = monitoredApp.getEffectiveUsageToday(rawTodayUsage) + sessionMinutes
                             val effectiveLimit = monitoredApp.getEffectiveLimitToday()
 
                             if (effectiveUsage >= effectiveLimit) {
