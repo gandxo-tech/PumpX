@@ -201,6 +201,52 @@ fun HomeScreen(
             }
         }
 
+        // Overlay Permission Warning Card (if missing)
+        if (!uiState.hasOverlayPermission) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                    ),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Security,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.tertiary
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "Affichage par-dessus les applications requis",
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Pour que PumpX puisse recouvrir TikTok et tes autres applications dès la limite atteinte, autorise la superposition d'écran.",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = { PermissionUtils.openOverlaySettings(context) },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.tertiary
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.testTag("grant_overlay_permission_button")
+                        ) {
+                            Text("Autoriser la superposition", color = Color.White)
+                        }
+                    }
+                }
+            }
+        }
+
         // Main Action CTA: Start Workout Session
         item {
             Card(

@@ -106,31 +106,69 @@ class BlockerService : Service() {
         startForeground(1, notification)
     }
 
+    private fun getForegroundPackageName(usageStatsManager: UsageStatsManager): String? {
+        val endTime = System.currentTimeMillis()
+        val startTime = endTime - 1000 * 60
+        val events = usageStatsManager.queryEvents(startTime, endTime)
+
+        var lastResumedPackage: String? = null
+        var lastResumedTime = 0L
+
+        while (events.hasNextEvent()) {
+            val event = UsageEvents.Event()
+            events.getNextEvent(event)
+            if (event.eventType == UsageEvents.Event.ACTIVITY_RESUMED) {
+                if (event.timeStamp >= lastResumedTime) {
+                    lastResumedTime = event.timeStamp
+                    lastResumedPackage = event.packageName
+                }
+            }
+        }
+
+        if (lastResumedPackage != null) {
+            return lastResumedPackage
+        }
+
+        try {
+            val statsList = usageStatsManager.queryUsageStats(
+                UsageStatsManager.INTERVAL_DAILY,
+                endTime - 1000 * 60 * 5,
+                endTime
+            )
+            if (!statsList.isNullOrEmpty()) {
+                val mostRecent = statsList.maxByOrNull { it.lastTimeUsed }
+                if (mostRecent != null && (endTime - mostRecent.lastTimeUsed) < 20000) {
+                    return mostRecent.packageName
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        return null
+    }
+
     private fun startMonitoring() {
         scope.launch {
             val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager ?: return@launch
             val app = application as PumpXApplication
+            var lastDetectedForegroundPackage: String? = null
             
             while (isRunning) {
                 try {
                     val monitoredApps = app.monitoredAppRepository.allMonitoredApps.firstOrNull() ?: emptyList()
                     if (monitoredApps.isEmpty()) {
-                        withContext(Dispatchers.Main) { hideOverlayWindow() }
+                        if (currentOverlayPackage != null) {
+                            withContext(Dispatchers.Main) { hideOverlayWindow() }
+                        }
                         delay(2000)
                         continue
                     }
 
-                    val endTime = System.currentTimeMillis()
-                    val startTime = endTime - 1000 * 10 // last 10 seconds
-                    val events = usageStatsManager.queryEvents(startTime, endTime)
-                    
-                    var currentForegroundApp: String? = null
-                    while (events.hasNextEvent()) {
-                        val event = UsageEvents.Event()
-                        events.getNextEvent(event)
-                        if (event.eventType == UsageEvents.Event.ACTIVITY_RESUMED) {
-                            currentForegroundApp = event.packageName
-                        }
+                    val detectedApp = getForegroundPackageName(usageStatsManager)
+                    val currentForegroundApp = detectedApp ?: lastDetectedForegroundPackage
+                    if (detectedApp != null) {
+                        lastDetectedForegroundPackage = detectedApp
                     }
 
                     if (currentForegroundApp != null && currentForegroundApp != packageName) {
@@ -153,7 +191,7 @@ class BlockerService : Service() {
                                 }
                             }
                         } else {
-                            if (currentOverlayPackage != null) {
+                            if (currentOverlayPackage != null && currentOverlayPackage != currentForegroundApp) {
                                 withContext(Dispatchers.Main) { hideOverlayWindow() }
                             }
                         }
@@ -163,15 +201,16 @@ class BlockerService : Service() {
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
-                delay(2000)
+                delay(1000)
             }
         }
     }
 
     private fun showOverlayWindow(targetPackage: String, limit: Int) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
-            // If overlay permission not granted, fallback to activity intent
-            if (currentForegroundAppOrTarget(targetPackage) != lastBlockedPackage || System.currentTimeMillis() - lastBlockedTime > 60000) {
+            // Prompt for overlay permission if missing
+            com.example.core.permissions.PermissionUtils.openOverlaySettings(this)
+            if (currentForegroundAppOrTarget(targetPackage) != lastBlockedPackage || System.currentTimeMillis() - lastBlockedTime > 30000) {
                 lastBlockedPackage = targetPackage
                 lastBlockedTime = System.currentTimeMillis()
                 launchBlockingScreen(targetPackage, limit)
@@ -195,7 +234,10 @@ class BlockerService : Service() {
             else
                 @Suppress("DEPRECATION")
                 WindowManager.LayoutParams.TYPE_PHONE,
-            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or 
+                WindowManager.LayoutParams.FLAG_FULLSCREEN or 
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or 
+                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED,
             PixelFormat.TRANSLUCENT
         )
 

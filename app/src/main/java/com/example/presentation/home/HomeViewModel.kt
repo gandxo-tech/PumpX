@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 
+import com.example.core.permissions.PermissionUtils
+
 data class HomeUiState(
     val userNickname: String = "",
     val todayPushups: Int = 0,
@@ -22,6 +24,7 @@ data class HomeUiState(
     val totalScreenTimeTodayMinutes: Int = 0,
     val monitoredApps: List<MonitoredAppEntity> = emptyList(),
     val hasUsagePermission: Boolean = false,
+    val hasOverlayPermission: Boolean = false,
     val isLoading: Boolean = false,
     val totalPushupsAllTime: Int = 0,
     val level: Int = 1
@@ -51,6 +54,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val allTimePushups = params[4] as Int? ?: 0
 
         val hasPermission = screenTimeRepository.isPermissionGranted()
+        val hasOverlayPermission = PermissionUtils.hasOverlayPermission(getApplication())
         val totalScreenTime = if (hasPermission) {
             apps.sumOf { appEntity ->
                 val rawUsage = screenTimeRepository.getTodayUsageMinutes(appEntity.packageName)
@@ -72,6 +76,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             totalScreenTimeTodayMinutes = totalScreenTime,
             monitoredApps = apps,
             hasUsagePermission = hasPermission,
+            hasOverlayPermission = hasOverlayPermission,
             totalPushupsAllTime = allTimePushups,
             level = level
         )

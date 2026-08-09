@@ -39,6 +39,37 @@ object PermissionUtils {
         }
     }
 
+    fun hasOverlayPermission(context: Context): Boolean {
+        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            Settings.canDrawOverlays(context)
+        } else {
+            true
+        }
+    }
+
+    fun openOverlaySettings(context: Context) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            val intent = Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                android.net.Uri.parse("package:${context.packageName}")
+            ).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            try {
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                val fallbackIntent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                try {
+                    context.startActivity(fallbackIntent)
+                } catch (ex: Exception) {
+                    ex.printStackTrace()
+                }
+            }
+        }
+    }
+
     fun openAppSystemSettings(context: Context) {
         val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
             data = android.net.Uri.fromParts("package", context.packageName, null)

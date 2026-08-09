@@ -416,8 +416,8 @@ private fun AddAppModalDialog(
                     Slider(
                         value = limitMinutes.toFloat(),
                         onValueChange = { limitMinutes = it.toInt() },
-                        valueRange = 5f..180f,
-                        steps = 34
+                        valueRange = 1f..180f,
+                        steps = 178
                     )
                     TextButton(onClick = { selectedApp = null }) {
                         Text("← Choisir une autre application")
@@ -461,8 +461,8 @@ private fun EditAppLimitDialog(
                 Slider(
                     value = limitMinutes.toFloat(),
                     onValueChange = { limitMinutes = it.toInt() },
-                    valueRange = 5f..180f,
-                    steps = 34
+                    valueRange = 1f..180f,
+                    steps = 178
                 )
             }
         },
