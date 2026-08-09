@@ -146,9 +146,16 @@ fun PumpXAppMain(
 
     LaunchedEffect(activeIntent) {
         val blockedPackage = activeIntent?.getStringExtra("blocked_package")
+        val directToCamera = activeIntent?.getBooleanExtra("direct_to_camera", false) ?: false
         if (!blockedPackage.isNullOrEmpty()) {
-            navController.navigate(Screen.LimitReached.createRoute(blockedPackage, 10, 15)) {
-                popUpTo(0) { inclusive = true }
+            if (directToCamera) {
+                navController.navigate(Screen.CameraSession.createRoute(blockedPackage, 10, 15)) {
+                    popUpTo(0) { inclusive = true }
+                }
+            } else {
+                navController.navigate(Screen.LimitReached.createRoute(blockedPackage, 10, 15)) {
+                    popUpTo(0) { inclusive = true }
+                }
             }
         }
     }
