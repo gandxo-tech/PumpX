@@ -146,6 +146,46 @@ fun MonitoredAppsScreen(
                     }
                 }
 
+                if (!PermissionUtils.hasOverlayPermission(context)) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Security,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.tertiary
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Superposition d'écran requise",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                                    )
+                                    Text(
+                                        text = "Requis pour afficher l'écran de blocage par-dessus vos applications",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                                    )
+                                }
+                                TextButton(onClick = { PermissionUtils.openOverlaySettings(context) }) {
+                                    Text("Autoriser")
+                                }
+                            }
+                        }
+                    }
+                }
+
                 if (uiState.monitoredApps.isEmpty()) {
                     item {
                         Card(

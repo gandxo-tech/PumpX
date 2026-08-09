@@ -46,13 +46,17 @@ class MonitoredAppRepository(private val monitoredAppDao: MonitoredAppDao) {
         }
     }
 
-    suspend fun addBonusMinutes(packageName: String, minutes: Int) {
+    suspend fun addBonusMinutes(packageName: String, minutes: Int, currentTodayUsageMinutes: Int = 0) {
         val app = monitoredAppDao.getAppByPackageName(packageName) ?: return
         val todayEpochDay = LocalDate.now().toEpochDay()
         val currentBonus = if (app.lastResetDateEpochDay == todayEpochDay) app.bonusMinutesUnlockedToday else 0
         
+        val neededBonusForCurrentTime = maxOf(0, currentTodayUsageMinutes - app.dailyLimitMinutes)
+        val targetBonus = neededBonusForCurrentTime + minutes
+        val newBonus = maxOf(currentBonus + minutes, targetBonus)
+
         val updated = app.copy(
-            bonusMinutesUnlockedToday = currentBonus + minutes,
+            bonusMinutesUnlockedToday = newBonus,
             lastResetDateEpochDay = todayEpochDay
         )
         monitoredAppDao.updateApp(updated)

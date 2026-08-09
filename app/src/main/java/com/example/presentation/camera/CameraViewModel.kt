@@ -102,7 +102,8 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
 
             state.targetPackage?.let { pkg ->
                 if (pkg != "general") {
-                    monitoredAppRepository.addBonusMinutes(pkg, state.bonusMinutesToUnlock)
+                    val usage = app.screenTimeRepository.getTodayUsageMinutes(pkg)
+                    monitoredAppRepository.addBonusMinutes(pkg, state.bonusMinutesToUnlock, usage)
                 }
             }
             

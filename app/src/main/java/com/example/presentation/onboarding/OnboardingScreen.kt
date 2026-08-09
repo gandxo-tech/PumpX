@@ -358,7 +358,7 @@ private fun Slide2ConceptExplained() {
         ConceptCardStep(
             number = "1",
             title = "Fixe tes limites d'applications",
-            description = "Définis un temps max quotidien pour TikTok, Instagram, jeux, etc. Une fois la limite atteinte, l'application est bloquée.",
+            description = "Définis un temps max quotidien pour tes applications. Une fois la limite atteinte, l'application est bloquée.",
             icon = Icons.Default.Block,
             accentColor = MaterialTheme.colorScheme.error
         )
@@ -598,7 +598,7 @@ private fun Slide4SelectApps() {
 
         AppCategorySampleCard(
             title = "Réseaux Sociaux",
-            subtitle = "TikTok, Instagram, Snapchat, X",
+            subtitle = "Applications de contenu et messages",
             limit = "30 min / jour",
             cost = "10 pompes = +15 min",
             icon = Icons.Default.PhoneAndroid
@@ -608,7 +608,7 @@ private fun Slide4SelectApps() {
 
         AppCategorySampleCard(
             title = "Streaming & Vidéos",
-            subtitle = "YouTube, Netflix, Twitch",
+            subtitle = "Applications de divertissement et vidéos",
             limit = "45 min / jour",
             cost = "15 pompes = +20 min",
             icon = Icons.Default.Timer

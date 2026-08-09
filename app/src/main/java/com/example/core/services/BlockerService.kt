@@ -108,36 +108,37 @@ class BlockerService : Service() {
 
     private fun getForegroundPackageName(usageStatsManager: UsageStatsManager): String? {
         val endTime = System.currentTimeMillis()
-        val startTime = endTime - 1000 * 60
+        val startTime = endTime - 1000 * 60 * 10 // query last 10 minutes
         val events = usageStatsManager.queryEvents(startTime, endTime)
 
-        var lastResumedPackage: String? = null
+        var lastResumedPkg: String? = null
         var lastResumedTime = 0L
 
         while (events.hasNextEvent()) {
             val event = UsageEvents.Event()
             events.getNextEvent(event)
-            if (event.eventType == UsageEvents.Event.ACTIVITY_RESUMED) {
+            val type = event.eventType
+            if (type == UsageEvents.Event.ACTIVITY_RESUMED || type == 1) {
                 if (event.timeStamp >= lastResumedTime) {
                     lastResumedTime = event.timeStamp
-                    lastResumedPackage = event.packageName
+                    lastResumedPkg = event.packageName
                 }
             }
         }
 
-        if (lastResumedPackage != null) {
-            return lastResumedPackage
+        if (!lastResumedPkg.isNullOrEmpty()) {
+            return lastResumedPkg
         }
 
         try {
             val statsList = usageStatsManager.queryUsageStats(
                 UsageStatsManager.INTERVAL_DAILY,
-                endTime - 1000 * 60 * 5,
+                endTime - 1000 * 60 * 10,
                 endTime
             )
             if (!statsList.isNullOrEmpty()) {
                 val mostRecent = statsList.maxByOrNull { it.lastTimeUsed }
-                if (mostRecent != null && (endTime - mostRecent.lastTimeUsed) < 20000) {
+                if (mostRecent != null) {
                     return mostRecent.packageName
                 }
             }
@@ -152,7 +153,8 @@ class BlockerService : Service() {
         scope.launch {
             val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager ?: return@launch
             val app = application as PumpXApplication
-            var lastDetectedForegroundPackage: String? = null
+            var activeForegroundApp: String? = null
+            var foregroundStartTime: Long = 0L
             
             while (isRunning) {
                 try {
@@ -166,37 +168,43 @@ class BlockerService : Service() {
                     }
 
                     val detectedApp = getForegroundPackageName(usageStatsManager)
-                    val currentForegroundApp = detectedApp ?: lastDetectedForegroundPackage
-                    if (detectedApp != null) {
-                        lastDetectedForegroundPackage = detectedApp
+
+                    if (detectedApp != null && detectedApp != activeForegroundApp) {
+                        activeForegroundApp = detectedApp
+                        foregroundStartTime = System.currentTimeMillis()
                     }
 
-                    if (currentForegroundApp != null && currentForegroundApp != packageName) {
-                        val monitoredApp = monitoredApps.find { it.packageName == currentForegroundApp }
+                    val currentApp = detectedApp ?: activeForegroundApp
+
+                    if (currentApp != null && currentApp != packageName) {
+                        val monitoredApp = monitoredApps.find { it.packageName == currentApp }
                         if (monitoredApp != null && monitoredApp.isEnabled) {
-                            val rawTodayUsage = app.screenTimeRepository.getTodayUsageMinutes(currentForegroundApp)
-                            if (monitoredApp.lastResetDateEpochDay == java.time.LocalDate.now().toEpochDay() && monitoredApp.initialUsageTodayMinutes == 0 && rawTodayUsage > 0) {
-                                app.monitoredAppRepository.checkAndAutoRepairBaseline(monitoredApp.packageName, rawTodayUsage)
-                            }
-                            val effectiveUsage = monitoredApp.getEffectiveUsageToday(rawTodayUsage)
+                            val rawTodayUsage = app.screenTimeRepository.getTodayUsageMinutes(currentApp)
+                            val sessionMinutes = if (activeForegroundApp == currentApp && foregroundStartTime > 0) {
+                                ((System.currentTimeMillis() - foregroundStartTime) / 1000 / 60).toInt()
+                            } else 0
+
+                            val effectiveUsage = maxOf(rawTodayUsage, monitoredApp.getEffectiveUsageToday(rawTodayUsage) + sessionMinutes)
                             val effectiveLimit = monitoredApp.getEffectiveLimitToday()
+
                             if (effectiveUsage >= effectiveLimit) {
-                                // Exceeded! Cover target app with limit overlay
                                 withContext(Dispatchers.Main) {
-                                    showOverlayWindow(currentForegroundApp, effectiveLimit)
+                                    showOverlayWindow(currentApp, effectiveLimit)
                                 }
                             } else {
-                                if (currentOverlayPackage == currentForegroundApp) {
+                                if (currentOverlayPackage == currentApp) {
                                     withContext(Dispatchers.Main) { hideOverlayWindow() }
                                 }
                             }
                         } else {
-                            if (currentOverlayPackage != null && currentOverlayPackage != currentForegroundApp) {
+                            if (currentOverlayPackage != null) {
                                 withContext(Dispatchers.Main) { hideOverlayWindow() }
                             }
                         }
-                    } else if (currentForegroundApp == packageName) {
-                        withContext(Dispatchers.Main) { hideOverlayWindow() }
+                    } else if (currentApp == packageName) {
+                        if (currentOverlayPackage != null) {
+                            withContext(Dispatchers.Main) { hideOverlayWindow() }
+                        }
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -234,8 +242,7 @@ class BlockerService : Service() {
             else
                 @Suppress("DEPRECATION")
                 WindowManager.LayoutParams.TYPE_PHONE,
-            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or 
-                WindowManager.LayoutParams.FLAG_FULLSCREEN or 
+            WindowManager.LayoutParams.FLAG_FULLSCREEN or 
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or 
                 WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED,
             PixelFormat.TRANSLUCENT

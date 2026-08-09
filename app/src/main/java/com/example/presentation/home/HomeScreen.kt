@@ -227,7 +227,7 @@ fun HomeScreen(
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Pour que PumpX puisse recouvrir TikTok et tes autres applications dès la limite atteinte, autorise la superposition d'écran.",
+                            text = "Pour que PumpX puisse recouvrir tes applications dès la limite atteinte, autorise la superposition d'écran.",
                             fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onTertiaryContainer
                         )
