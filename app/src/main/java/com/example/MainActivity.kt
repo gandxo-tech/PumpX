@@ -275,7 +275,8 @@ fun PumpXAppMain(
             composable(Screen.Home.route) {
                 HomeScreen(
                     onNavigateToCalibration = { navController.navigate(Screen.Calibration.route) },
-                    onNavigateToApps = { navController.navigate(Screen.Apps.route) }
+                    onNavigateToApps = { navController.navigate(Screen.Apps.route) },
+                    onNavigateToShare = { navController.navigate(Screen.ShareStats.route) }
                 )
             }
 

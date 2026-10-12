@@ -3,6 +3,6 @@
     <item
         android:width="66dp"
         android:height="66dp"
-        android:drawable="@drawable/pumpx_logo_x_1786223802015"
+        android:drawable="@drawable/pumpx_app_icon_1786353739568"
         android:gravity="center" />
 </layer-list>
